@@ -4,7 +4,7 @@
 #include <vector>
 #include <boost/cstdint.hpp>
 #include <boost/shared_array.hpp>
-#include <rtp++/Buffer.h>
+#include "Buffer.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
 

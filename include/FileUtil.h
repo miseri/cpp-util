@@ -15,8 +15,8 @@
 #include <boost/regex.hpp>
 
 // RTVC
-#include <rtp++/Buffer.h>
-#include <rtp++/ExceptionBase.h>
+#include "Buffer.h"
+#include "ExceptionBase.h"
 
 namespace bfs = boost::filesystem;
 

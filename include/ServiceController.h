@@ -4,10 +4,13 @@
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_service.hpp>
+#include <boost/asio/placeholders.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/thread.hpp>
 
 // -DSINGLE_CORE: can be used to simplify debugging and determining
 // whether multi-threading related bugs are occurring
@@ -102,6 +105,8 @@ class ServiceController : public boost::noncopyable
   }
 
   protected:
+    virtual boost::system::error_code doStart(){  return boost::system::error_code(); }
+    virtual boost::system::error_code doStop(){  return boost::system::error_code(); }
     virtual void doPeriodicTask() {}
 
   private:

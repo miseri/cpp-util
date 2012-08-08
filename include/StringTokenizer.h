@@ -5,6 +5,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
+#include "Conversion.h"
+
 class StringTokenizer
 {
 public:
@@ -38,4 +40,31 @@ public:
 
     return vTokens;
   }
+
+  template <typename T>
+  static std::vector<T> tokenizeV2(const std::string& sText, const std::string& sTokens = " ", bool trim = false)
+  {
+    std::vector<T> vTokens;
+    size_t last_pos = 0;
+    for (size_t pos = 0; pos < sText.length(); ++pos)
+    {
+      for (size_t tokenPos = 0; tokenPos != sTokens.length(); ++tokenPos)
+      {
+        if (sText[pos] == sTokens[tokenPos])
+        {
+          std::string sTemp = sText.substr(last_pos, pos - last_pos);
+          if (trim) boost::algorithm::trim(sTemp);
+          vTokens.push_back(convert<T>(sTemp));
+          last_pos = pos + 1;
+        }
+      }
+    }
+    // push back last token
+    std::string sTemp = sText.substr(last_pos);
+    if (trim) boost::algorithm::trim(sTemp);
+    vTokens.push_back(convert<T>(sTemp));
+
+    return vTokens;
+  }
 };
+

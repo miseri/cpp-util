@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cassert>
 #include <cstring>
 #include <vector>
 #include <boost/cstdint.hpp>
 #include <boost/shared_array.hpp>
 #include "Buffer.h"
+#include "IBitStream.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
 
@@ -189,7 +191,37 @@ public:
        ) 
          return false;
     memcpy(&m_buffer[m_uiCurrentBytePos], rSrc, uiBytes);
+    m_uiCurrentBytePos += uiBytes;
     return true;
+  }
+
+
+  // this method writes all bytes remaining in the IBitStream to the output stream
+  // TODO: make this method handle non-byte boundary data
+  bool write(IBitStream& in)
+  {
+      if (m_uiBitsLeft != 8) return false;
+      // get remaining bytes
+      if (in.m_uiBitsRemaining % 8 != 0) return false;
+
+      // this code only works if all the pointers are byte aligned!!!
+      assert (m_uiCurrentBytePos < m_uiBufferSize);
+      uint32_t uiBytesLeft = m_uiBufferSize - m_uiCurrentBytePos;
+
+      uint32_t uiBytesToCopy = in.getBytesRemaining();
+      if (uiBytesToCopy > uiBytesLeft)
+      {
+        // conservative for now:
+        uint32_t uiNewSize = m_uiCurrentBytePos + uiBytesToCopy;
+        increaseBufferSize(uiNewSize);
+      }
+      // increase buffer size if necessary
+      uint8_t* pDestination = const_cast<uint8_t*>(m_buffer.data()) + m_uiCurrentBytePos;
+      // bool bRes = in.readBytes(&m_buffer[m_uiCurrentBytePos], uiBytesToCopy);
+      bool bRes = in.readBytes(pDestination, uiBytesToCopy);
+      assert (bRes);
+      m_uiCurrentBytePos += uiBytesToCopy;
+      return bRes;
   }
 
   uint32_t bytesUsed() const 
@@ -215,6 +247,12 @@ public:
     }
     return buffer;
   }
+
+  Buffer data() const
+  {
+    return str();
+  }
+
 private:
   void increaseBufferSize(uint32_t uiNewSize)
   {

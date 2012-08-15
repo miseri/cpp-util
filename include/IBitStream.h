@@ -7,6 +7,8 @@
  */
 class IBitStream
 {
+  friend class OBitStream;
+
 public:
   IBitStream(Buffer buffer)
     :m_buffer(buffer),
@@ -117,6 +119,7 @@ public:
     m_uiBitsRemaining -= uiBits;
     return true;
   }
+
   // this method can only be called on byte boundaries
   bool readBytes(uint8_t*& rDestination, uint32_t uiBytes)
   {

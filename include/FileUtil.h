@@ -26,37 +26,73 @@ namespace bfs = boost::filesystem;
 class FileUtil
 {
 public:
-	static std::string readFile(const std::string& sFile)
-	{
-		std::ifstream in1(sFile.c_str(), std::ios_base::in | std::ios_base::binary);
-		if (in1.is_open())
-		{
-			// get length of file:
-			in1.seekg (0, std::ios::end);
+  static std::string readFile(const std::string& sFile, bool bBinary)
+  {
+    std::ios_base::openmode mode = std::ios_base::in;
+    if (bBinary) mode |= std::ios_base::binary;
+
+    std::ifstream in1(sFile.c_str(), mode);
+    if (in1.is_open())
+    {
+      // get length of file:
+      in1.seekg (0, std::ios::end);
       std::streamoff length = in1.tellg();
-			in1.seekg (0, std::ios::beg);
+      in1.seekg (0, std::ios::beg);
 
       // Just in case
       assert(length < UINT_MAX);
       unsigned uiSize = static_cast<unsigned>(length);
-			char* szBuffer = new char[uiSize];
-			// read data as a block:
-			in1.read (szBuffer, length);
-			in1.close();
+      char* szBuffer = new char[uiSize];
+      // read data as a block:
+      in1.read (szBuffer, length);
+      in1.close();
 
-			std::string sFileContent(szBuffer, uiSize);
-			delete[] szBuffer;
-			return sFileContent;
-		}
-		else
-		{
-			BOOST_THROW_EXCEPTION(ExceptionBase("Failed to open file " + sFile));
-		}
-	}
+      std::string sFileContent(szBuffer, uiSize);
+      delete[] szBuffer;
+      return sFileContent;
+    }
+    else
+    {
+      BOOST_THROW_EXCEPTION(ExceptionBase("Failed to open file " + sFile));
+    }
+  }
 
-  static bool writeFile(const std::string& sFileName, const std::string& sContent)
+  static Buffer readFileIntoBuffer(const std::string& sFile, bool bBinary)
   {
-    std::ofstream out1(sFileName.c_str(), std::ios_base::out);
+    std::ios_base::openmode mode = std::ios_base::in;
+    if (bBinary) mode |= std::ios_base::binary;
+
+    std::ifstream in1(sFile.c_str(), mode);
+    if (in1.is_open())
+    {
+      // get length of file:
+      in1.seekg (0, std::ios::end);
+      std::streamoff length = in1.tellg();
+      in1.seekg (0, std::ios::beg);
+
+      // Just in case
+      assert(length < UINT_MAX);
+      unsigned uiSize = static_cast<unsigned>(length);
+      uint8_t* pBuffer = new uint8_t[uiSize];
+      Buffer buffer(pBuffer, uiSize);
+      // read data as a block:
+      in1.read ((char*)pBuffer, length);
+      in1.close();
+
+      return buffer;
+    }
+    else
+    {
+      BOOST_THROW_EXCEPTION(ExceptionBase("Failed to open file " + sFile));
+    }
+  }
+
+  static bool writeFile(const std::string& sFileName, const std::string& sContent, bool bBinary)
+  {
+    std::ios_base::openmode mode = std::ios_base::out;
+    if (bBinary) mode |= std::ios_base::binary;
+
+    std::ofstream out1(sFileName.c_str(), mode);
     if (out1.is_open())
     {
       out1 << sContent;
@@ -66,9 +102,12 @@ public:
     return false;
   }
 
-  static bool writeFile(const std::string& sFileName, const char* szBuffer, unsigned uiSize)
+  static bool writeFile(const std::string& sFileName, const char* szBuffer, unsigned uiSize, bool bBinary)
   {
-    std::ofstream out1(sFileName.c_str(), std::ios_base::out);
+    std::ios_base::openmode mode = std::ios_base::out;
+    if (bBinary) mode |= std::ios_base::binary;
+
+    std::ofstream out1(sFileName.c_str(), mode);
     if (out1.is_open())
     {
       out1.write(szBuffer, uiSize);
@@ -78,35 +117,12 @@ public:
     return false;
   }
 
-  static bool writeFile(const std::string& sFileName, const Buffer buffer)
+  static bool writeFile(const std::string& sFileName, const Buffer buffer, bool bBinary )
   {
-    std::ofstream out1(sFileName.c_str(), std::ios_base::out);
+    std::ios_base::openmode mode = std::ios_base::out;
+    if (bBinary) mode |= std::ios_base::binary;
+    std::ofstream out1(sFileName.c_str(), mode);
     if (out1.is_open())
-    {
-      const char* pBuffer = reinterpret_cast<const char*>(buffer.data());
-      out1.write(pBuffer, buffer.getSize());
-      out1.close();
-      return true;
-    }
-    return false;
-  }
-
-  static bool writeBinaryFile(const std::string& sFileName, const char* szBuffer, unsigned uiSize)
-  {
-    std::ofstream out1(sFileName.c_str(), std::ios_base::out | std::ios_base::binary);
-    if (out1.is_open())
-    {
-      out1.write(szBuffer, uiSize);
-      out1.close();
-      return true;
-    }
-    return false;
-  }
-
-  static bool writeBinaryFile(const std::string& sFileName, const Buffer buffer)
-  {
-    std::ofstream out1(sFileName.c_str(), std::ios_base::out | std::ios_base::binary);
-    if (out1.is_open()) 
     {
       const char* pBuffer = reinterpret_cast<const char*>(buffer.data());
       out1.write(pBuffer, buffer.getSize());

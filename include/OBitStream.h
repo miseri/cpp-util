@@ -205,10 +205,49 @@ public:
       if (in.m_uiBitsRemaining % 8 != 0) return false;
 
       // this code only works if all the pointers are byte aligned!!!
-      assert (m_uiCurrentBytePos < m_uiBufferSize);
+      if (m_uiCurrentBytePos >= m_uiBufferSize)
+      {
+          LOG(WARNING) << "WARN: Byte pos: " << m_uiCurrentBytePos << " Size: " << m_uiBufferSize;
+      }
+      assert (m_uiCurrentBytePos <= m_uiBufferSize);
       uint32_t uiBytesLeft = m_uiBufferSize - m_uiCurrentBytePos;
 
       uint32_t uiBytesToCopy = in.getBytesRemaining();
+      if (uiBytesToCopy > uiBytesLeft)
+      {
+        // conservative for now:
+        uint32_t uiNewSize = m_uiCurrentBytePos + uiBytesToCopy;
+        increaseBufferSize(uiNewSize);
+      }
+      // increase buffer size if necessary
+      uint8_t* pDestination = const_cast<uint8_t*>(m_buffer.data()) + m_uiCurrentBytePos;
+      // bool bRes = in.readBytes(&m_buffer[m_uiCurrentBytePos], uiBytesToCopy);
+      bool bRes = in.readBytes(pDestination, uiBytesToCopy);
+      assert (bRes);
+      m_uiCurrentBytePos += uiBytesToCopy;
+      return bRes;
+  }
+
+  // this method writes all bytes remaining in the IBitStream to the output stream
+  // TODO: make this method handle non-byte boundary data
+  bool write(IBitStream& in, uint32_t uiBytesToCopy)
+  {
+#if 0
+      VLOG(5) << "bits left: " << m_uiBitsLeft << " bits remaining: " << in.m_uiBitsRemaining << " Bytes: " << in.getBytesRemaining() << " To copy: " << uiBytesToCopy;
+#endif
+      if (m_uiBitsLeft != 8) return false;
+      // get remaining bytes
+      if (in.m_uiBitsRemaining % 8 != 0) return false;
+      if (in.getBytesRemaining() < uiBytesToCopy) return false;
+
+      // this code only works if all the pointers are byte aligned!!!
+      if (m_uiCurrentBytePos >= m_uiBufferSize)
+      {
+          LOG(WARNING) << "WARN: Byte pos: " << m_uiCurrentBytePos << " Size: " << m_uiBufferSize;
+      }
+      assert (m_uiCurrentBytePos <= m_uiBufferSize);
+      uint32_t uiBytesLeft = m_uiBufferSize - m_uiCurrentBytePos;
+
       if (uiBytesToCopy > uiBytesLeft)
       {
         // conservative for now:

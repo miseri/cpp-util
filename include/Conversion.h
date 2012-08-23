@@ -11,11 +11,12 @@
 
 // Should be deprecated since doesn't report failure
 template <class T>
-T convert(const std::string& sStringValue ) 
+T convert(const std::string& sStringValue, T defaultValue )
 {
-  T val;
+  T val = defaultValue;
   std::istringstream istr(sStringValue);
-  istr >> val;
+  if (istr.good())
+      istr >> val;
   return val;
 }
 
@@ -35,7 +36,7 @@ T convert(const std::string& sStringValue, bool& bSuccess )
 // the first digit into the temp val
 // WARNING: these user is responsible to make sure that the value is in the valid range
 template <>
-inline uint8_t convert<uint8_t>(const std::string& sStringValue)
+inline uint8_t convert<uint8_t>(const std::string& sStringValue, uint8_t defaultValue)
 {
   int32_t val(0);
   std::istringstream istr(sStringValue);
@@ -55,7 +56,7 @@ inline uint8_t convert<uint8_t>(const std::string& sStringValue, bool& bSuccess 
 // HACK END
 
 template <>
-inline bool convert<bool>(const std::string& sValue)
+inline bool convert<bool>(const std::string& sValue, bool defaultValue)
 {
   if (sValue == "1") return true;
   else if (sValue == "0" || sValue.empty()) return false;

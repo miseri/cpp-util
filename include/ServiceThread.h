@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/exception_ptr.hpp>
+#include <boost/function.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
@@ -8,6 +9,8 @@
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <glog/logging.h>
+
+typedef boost::function<void (boost::system::error_code)> CompletionHandler_t;
 
 template <class T>
 struct ServiceTraits
@@ -108,6 +111,9 @@ public:
     m_pImpl = serviceImpl;
   }
 
+  /// Completion handler
+  void setCompletionHandler(CompletionHandler_t onComplete) { m_onComplete = onComplete; }
+
   /// if the service implementation reports an error from the start or stop method call, it can be accessed via this method
   /// NB: only the last error can be accessed
   boost::system::error_code getServiceErrorCode() const { return m_ecService; }
@@ -206,11 +212,13 @@ private:
       // call implementation of event loop
       // This will block
       // In scenarios where the service fails to start, the implementation can return an error code
-      m_ecService = m_pImpl->start();
+      boost::system::error_code ec = m_ecService = m_pImpl->start();
 
       VLOG(1) << "Service thread complete: " << m_sServiceName;
 
       m_exception = boost::exception_ptr();
+
+      if (m_onComplete)(m_onComplete(ec));
     } 
     catch (...)
     {
@@ -238,4 +246,6 @@ private:
 
   // Exception ptr to transport exception across different threads
   boost::exception_ptr m_exception;
+
+  CompletionHandler_t m_onComplete;
 };

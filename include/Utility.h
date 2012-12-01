@@ -37,9 +37,9 @@
  #define TODO(x) assert 0;return x;
 #endif
 
-#if 1
+#ifdef DEF_MAKE_UNIQUE
 // Taken from http://stackoverflow.com/questions/7038357/make-unique-and-perfect-forwarding
-template<typename T, typename... Args>
+template<typename T, typename ...Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));

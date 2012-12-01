@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <deque>
+#include <numeric>
 #include <stdexcept>
 
 /**

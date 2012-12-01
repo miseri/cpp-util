@@ -50,7 +50,7 @@ class ServiceController : public boost::noncopyable
 #ifdef SINGLE_CORE
       uiCores = 1;
 #endif
-      LOG(INFO) << "Using " << uiCores << " cores";
+      VLOG(1) << "Using " << uiCores << " cores";
 
       // create threads for io service
       if (uiCores > 1)
@@ -147,7 +147,7 @@ class ServiceController : public boost::noncopyable
         }
         else
         {
-          LOG(INFO) << "Timer cancelled: possibly shutting down";
+          VLOG(1) << "Shutting down";
         }
       }
     }
@@ -156,9 +156,9 @@ class ServiceController : public boost::noncopyable
     {
       try
       {
-        VLOG(2) << "[" << boost::this_thread::get_id() << "] Running io service thread";
+        VLOG(1) << "[" << boost::this_thread::get_id() << "] Running io service thread";
         m_rIo_service.run();
-        VLOG(2) << "[" << boost::this_thread::get_id() << "] End of io service thread";
+        VLOG(1) << "[" << boost::this_thread::get_id() << "] End of io service thread";
         return;
       }
       catch(boost::exception &e)

@@ -222,5 +222,25 @@ public:
     }
     return vFiles;
   }
+
+  static bool fileExists(const std::string& sSource)
+  {
+    if (sSource.empty()) return false;
+
+    boost::filesystem::path source(sSource);
+    // file source: make sure file exists
+    if (!source.is_absolute())
+      source = boost::filesystem::current_path() / sSource;
+    if (!boost::filesystem::exists(source))
+    {
+      LOG(ERROR) << "File " << sSource << " does not exist";
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
+
 };
 

@@ -20,6 +20,9 @@ public:
     if (m_max_size == 0) throw std::invalid_argument("Bad size");
   }
 
+  bool empty() const { return m_queue.empty(); }
+  std::size_t size() const { return m_queue.size(); }
+
   R getAverage() const { return m_average; }
 
   void insert(const T t)

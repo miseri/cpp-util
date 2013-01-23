@@ -79,6 +79,17 @@ std::string toString(T t)
   return ostr.str();
 }
 
+template <class T>
+std::string toString(const std::vector<T>& vecT)
+{
+  std::ostringstream ostr;
+  std::for_each(vecT.begin(), vecT.end(), [&ostr](const T t)
+  {
+    ostr << t << " ";
+  });
+  return ostr.str();
+}
+
 // Converts "1", "true", "TRUE" to true and "0", "FALSE" and "false" to false
 static bool stringToBool(const std::string& sValue)
 {

@@ -74,26 +74,26 @@ public:
   ServiceThread()
     :m_sServiceName(ServiceTraits<T>::name)
   {
-    VLOG(1) << "Service created: " << m_sServiceName;
+    VLOG(10) << "Service created: " << m_sServiceName;
   }
 
   ServiceThread(ServiceImpl impl)
     :m_sServiceName(ServiceTraits<T>::name),
     m_pImpl(impl)
   {
-    VLOG(1) << "Service created: " << m_sServiceName;
+    VLOG(10) << "Service created: " << m_sServiceName;
   }
 
   ~ServiceThread()
   {
-    VLOG(1) << "Service destructor: " << m_sServiceName;
+    VLOG(10) << "Service destructor: " << m_sServiceName;
 
     /// try stop the service in case it's running
     if (m_pServiceThread && m_pServiceThread->joinable())
     {
       stop();
     }
-    VLOG(1) << "Service complete: " << m_sServiceName;
+    VLOG(10) << "Service complete: " << m_sServiceName;
   }
 
   static ptr create()
@@ -126,9 +126,9 @@ public:
     boost::mutex::scoped_lock lock(m_joinMutex);
     if (m_pServiceThread && m_pServiceThread->joinable())
     {
-      VLOG(1) << "Joining: " << m_sServiceName;
+      VLOG(10) << "Joining: " << m_sServiceName;
       m_pServiceThread->join();
-      VLOG(1) << "Resetting handle: " << m_sServiceName;
+      VLOG(10) << "Resetting handle: " << m_sServiceName;
       m_pServiceThread.reset();
     }
   }
@@ -153,7 +153,7 @@ public:
       return ec;
     }
 
-    VLOG(1) << "Starting service: " << m_sServiceName;
+    VLOG(10) << "Starting service: " << m_sServiceName;
     m_pServiceThread = thread_ptr(new boost::thread(boost::bind(&ServiceThread::main, this)));
 
     m_startCondition.wait(m_threadMutex);
@@ -167,7 +167,7 @@ public:
   /// This method stops the non-blocking service
   boost::system::error_code stop()
   {
-    VLOG(1) << "Stopping service: " << m_sServiceName;
+    VLOG(10) << "Stopping service: " << m_sServiceName;
     // trigger the stopping of the event loop
     boost::system::error_code ec = m_pImpl->stop();
     if (ec)
@@ -185,7 +185,7 @@ public:
     // Failure to do so, will result in a block
     // If this occurs in practice, we may consider a timed join?
     join();
-    VLOG(1) << "Stopping complete: " << m_sServiceName;
+    VLOG(10) << "Stopping complete: " << m_sServiceName;
 
     // If exception was thrown in new thread, rethrow it.
     // Should the template implementation class want to avoid this, it should catch the exception
@@ -202,7 +202,7 @@ private:
   {
     try
     {      
-      VLOG(1) << "Service thread started: " << m_sServiceName;
+      VLOG(10) << "Service thread started: " << m_sServiceName;
 
       boost::mutex::scoped_lock lock(m_threadMutex);
       // notify main thread that it can continue
@@ -215,7 +215,7 @@ private:
       // In scenarios where the service fails to start, the implementation can return an error code
       boost::system::error_code ec = m_ecService = m_pImpl->start();
 
-      VLOG(1) << "Service thread complete: " << m_sServiceName;
+      VLOG(10) << "Service thread complete: " << m_sServiceName;
 
       m_exception = boost::exception_ptr();
 

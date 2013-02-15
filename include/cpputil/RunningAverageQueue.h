@@ -20,6 +20,16 @@ public:
     if (m_max_size == 0) throw std::invalid_argument("Bad size");
   }
 
+  typename std::deque<T>::iterator begin()
+  {
+    return m_queue.begin();
+  }
+
+  typename std::deque<T>::iterator end()
+  {
+    return m_queue.end();
+  }
+
   void clear() { m_queue.clear(); }
   bool empty() const { return m_queue.empty(); }
   std::size_t size() const { return m_queue.size(); }

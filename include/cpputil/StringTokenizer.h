@@ -11,7 +11,7 @@ class StringTokenizer
 {
 public:
 
-  static std::vector<std::string> tokenize(const std::string& sText, const std::string& sTokens = " ", bool trim = false)
+  static std::vector<std::string> tokenize(const std::string& sText, const std::string& sTokens = " ", bool trim = false, bool bDropEmptyTokens = false)
   {
     std::string sTrimmed = sText;
     boost::algorithm::trim(sTrimmed);
@@ -23,8 +23,20 @@ public:
       {
         if (sTrimmed[pos] == sTokens[tokenPos])
         {
-          vTokens.push_back(sTrimmed.substr(last_pos, pos - last_pos));
-          last_pos = pos + 1;
+          if (bDropEmptyTokens)
+          {
+            // avoid tokenising empty strings
+            if (last_pos != pos)
+            {
+              vTokens.push_back(sTrimmed.substr(last_pos, pos - last_pos));
+              last_pos = pos + 1;
+            }
+          }
+          else
+          {
+            vTokens.push_back(sTrimmed.substr(last_pos, pos - last_pos));
+            last_pos = pos + 1;
+          }
         }
       }
     }

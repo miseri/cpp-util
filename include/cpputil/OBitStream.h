@@ -17,25 +17,37 @@
  */
 class OBitStream
 {
-  //typedef boost::shared_array<uint8_t> buffer_t;
 public:
 
-  OBitStream(const uint32_t uiSize = DEFAULT_BUFFER_SIZE)
+  OBitStream(const uint32_t uiSize = DEFAULT_BUFFER_SIZE, bool bConservative = true)
     :m_uiBufferSize(uiSize),
     m_buffer(new uint8_t[uiSize], uiSize),
     m_uiBitsLeft(8),
-    m_uiCurrentBytePos(0)
+    m_uiCurrentBytePos(0),
+    m_bConservative(bConservative)
   {
     memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
   }
 
-  OBitStream(Buffer buffer)
+  OBitStream(Buffer buffer, bool bConservative = true)
     :m_uiBufferSize(buffer.getSize()),
     m_buffer(buffer),
     m_uiBitsLeft(8),
-    m_uiCurrentBytePos(0)
+    m_uiCurrentBytePos(0),
+    m_bConservative(bConservative)
   {
     memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
+  }
+
+  /**
+    * This method resets the write pointers inside the class
+    * The allocated memory is not touched or modified.
+    * This is useful to avoid memory allocation.
+    */
+  void reset()
+  {
+    m_uiBitsLeft = 8;
+    m_uiCurrentBytePos = 0;
   }
 
   void write8Bits(uint8_t uiValue)
@@ -216,7 +228,7 @@ public:
       if (uiBytesToCopy > uiBytesLeft)
       {
         // conservative for now:
-        uint32_t uiNewSize = m_uiCurrentBytePos + uiBytesToCopy;
+        uint32_t uiNewSize = m_bConservative ? m_uiCurrentBytePos + uiBytesToCopy : m_uiBufferSize * 2;
         increaseBufferSize(uiNewSize);
       }
       // increase buffer size if necessary
@@ -343,20 +355,14 @@ private:
   }
 
   uint32_t m_uiBufferSize;
-  //buffer_t m_buffer;
   Buffer m_buffer;
 
   ///< Bits left in current byte
   uint32_t m_uiBitsLeft;
 
   ///< Current position in the buffer  
-  uint32_t m_uiCurrentBytePos; 
+  uint32_t m_uiCurrentBytePos;
+
+  bool m_bConservative;
 };
-
-// TODO: would this help to output pairs
-//OBitStream& operator<<( OBitStream& stream, std::pair<uint32_t, uint32_t> )
-//{
-//
-//}
-
 

@@ -72,13 +72,15 @@ public:
   typedef boost::shared_ptr<ServiceThread<T> > ptr;
 
   ServiceThread()
-    :m_sServiceName(ServiceTraits<T>::name)
+    :m_eState(SS_READY),
+    m_sServiceName(ServiceTraits<T>::name)
   {
     VLOG(10) << "Service created: " << m_sServiceName;
   }
 
   ServiceThread(ServiceImpl impl)
-    :m_sServiceName(ServiceTraits<T>::name),
+    :m_eState(SS_READY),
+    m_sServiceName(ServiceTraits<T>::name),
     m_pImpl(impl)
   {
     VLOG(10) << "Service created: " << m_sServiceName;
@@ -100,6 +102,10 @@ public:
   {
     return boost::make_shared<ServiceThread<T> >();
   }
+
+  bool isRunning() const { return m_eState == SS_RUNNING; }
+  bool isReady() const { return m_eState == SS_READY; }
+  bool isStopping() const { return m_eState == SS_STOPPING; }
 
   /// Accessor to service implementation. The handle can be used to configure the implementation object
   ServiceImpl& get() { return m_pImpl; }
@@ -160,6 +166,7 @@ public:
 
     // notify main to continue: it's blocked on the same condition var
     m_startCondition.notify_one();
+    m_eState = SS_READY;
     // No error
     return boost::system::error_code();
   }
@@ -168,6 +175,7 @@ public:
   boost::system::error_code stop()
   {
     VLOG(10) << "Stopping service: " << m_sServiceName;
+    m_eState = SS_STOPPING;
     // trigger the stopping of the event loop
     boost::system::error_code ec = m_pImpl->stop();
     if (ec)
@@ -220,7 +228,8 @@ private:
       m_exception = boost::exception_ptr();
 
       if (m_onComplete)(m_onComplete(ec));
-    } 
+      m_eState = SS_STOPPED;
+    }
     catch (...)
     {
       m_exception = boost::current_exception();
@@ -228,6 +237,13 @@ private:
     }
   }
 
+  enum ServiceState
+  {
+    SS_READY,
+    SS_RUNNING,
+    SS_STOPPING
+  };
+  ServiceState m_eState;
   /// Service name
   std::string m_sServiceName;
   /// Service thread

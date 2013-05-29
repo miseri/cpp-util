@@ -228,7 +228,7 @@ private:
       m_exception = boost::exception_ptr();
 
       if (m_onComplete)(m_onComplete(ec));
-      m_eState = SS_STOPPED;
+      m_eState = SS_READY;
     }
     catch (...)
     {

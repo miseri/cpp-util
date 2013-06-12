@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <string>
+#include <vector>
 #include <boost/optional.hpp>
 
 class GenericParameters
@@ -47,6 +48,14 @@ public:
         return boost::optional<std::string>();
     }
 
+    boost::optional<std::vector<std::string> > getStringsParameter(const std::string& sParamName) const
+    {
+        auto it = m_mStringsParameters.find(sParamName);
+        if (it != m_mStringsParameters.end())
+            return boost::optional<std::vector<std::string> >(it->second);
+        return boost::optional<std::vector<std::string> >();
+    }
+
     void setIntParameter( const std::string& sParamName, int32_t iValue)
     {
       m_mIntParameters[sParamName] = iValue;
@@ -72,9 +81,15 @@ public:
       m_mStringParameters[sParamName] = sParamValue;
     }
 
+    void setStringsParameter( const std::string& sParamName, const std::vector<std::string>& values)
+    {
+      m_mStringsParameters[sParamName] = values;
+    }
+
     std::map<std::string, int32_t> m_mIntParameters;
     std::map<std::string, uint32_t> m_mUintParameters;
     std::map<std::string, bool> m_mBoolParameters;
     std::map<std::string, double> m_mDoubleParameters;
     std::map<std::string, std::string> m_mStringParameters;
+    std::map<std::string, std::vector<std::string> > m_mStringsParameters;
 };

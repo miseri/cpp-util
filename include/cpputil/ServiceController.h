@@ -33,6 +33,10 @@ class ServiceController : public boost::noncopyable
       return m_rIo_service;
     }
 
+    bool isRunning() const { return m_eState == SS_RUNNING; }
+    bool isReady() const { return m_eState == SS_READY; }
+    bool isStopping() const { return m_eState == SS_STOPPING; }
+
     boost::system::error_code start()
     {
       // give subclass a chance to take action
@@ -60,20 +64,23 @@ class ServiceController : public boost::noncopyable
         {
           worker_threads.create_thread( boost::bind( &ServiceController::runIoService, this ) );
         }
-
+        m_eState = SS_RUNNING;
         worker_threads.join_all();
       }
       else
       {
+        m_eState = SS_RUNNING;
         runIoService();
       }
 
       m_rIo_service.reset();
+      m_eState = SS_READY;
       return boost::system::error_code();
     }
 
     boost::system::error_code stop()
     {
+      m_eState = SS_STOPPING;
       // allow subclasses to control stopping
       doStop();
       // Stop the work: this will result in the the io_service stopping once it runs out of work
@@ -89,6 +96,7 @@ class ServiceController : public boost::noncopyable
     ServiceController(unsigned uiTimerTimeoutMs = 1000)
       :m_rIo_service(m_ioService),
       m_strand(m_rIo_service),
+      m_eState(SS_READY),
       m_uiTimerTimeoutMs(uiTimerTimeoutMs),
       m_timer(m_rIo_service, boost::posix_time::milliseconds(m_uiTimerTimeoutMs))
   {
@@ -98,6 +106,7 @@ class ServiceController : public boost::noncopyable
     ServiceController(boost::asio::io_service& io_service, unsigned uiTimerTimeoutMs = 1000)
       :m_rIo_service(io_service),
       m_strand(m_rIo_service),
+      m_eState(SS_READY),
       m_uiTimerTimeoutMs(uiTimerTimeoutMs),
       m_timer(m_rIo_service, boost::posix_time::milliseconds(m_uiTimerTimeoutMs))
   {
@@ -180,6 +189,15 @@ class ServiceController : public boost::noncopyable
   private:
     boost::shared_ptr<boost::asio::io_service::work> m_pWork;
     boost::asio::io_service::strand m_strand;
+
+    enum ServiceState
+    {
+      SS_READY,
+      SS_RUNNING,
+      SS_STOPPING
+    };
+    ServiceState m_eState;
+
     unsigned m_uiTimerTimeoutMs;
     boost::asio::deadline_timer m_timer;
 

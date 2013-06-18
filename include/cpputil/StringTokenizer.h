@@ -28,7 +28,12 @@ public:
             // avoid tokenising empty strings
             if (last_pos != pos)
             {
-              vTokens.push_back(sTrimmed.substr(last_pos, pos - last_pos));
+              std::string sTok = sTrimmed.substr(last_pos, pos - last_pos);
+              boost::algorithm::trim(sTok);
+              if (!sTok.empty())
+              {
+                vTokens.push_back(sTok);
+              }
               last_pos = pos + 1;
             }
           }

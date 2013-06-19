@@ -1,12 +1,11 @@
 #pragma once
-
 #include <memory>
-
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/system/error_code.hpp>
@@ -26,6 +25,9 @@
 class ServiceController : public boost::noncopyable
 {
   public:
+
+  typedef boost::function<void ()> OnStart_t;
+
     virtual ~ServiceController(){}
 
     boost::asio::io_service& getIoService()
@@ -36,6 +38,9 @@ class ServiceController : public boost::noncopyable
     bool isRunning() const { return m_eState == SS_RUNNING; }
     bool isReady() const { return m_eState == SS_READY; }
     bool isStopping() const { return m_eState == SS_STOPPING; }
+
+    /// Completion handler
+    void setOnStartHandler(OnStart_t onStart) { m_onStart = onStart; }
 
     boost::system::error_code start()
     {
@@ -64,13 +69,27 @@ class ServiceController : public boost::noncopyable
         {
           worker_threads.create_thread( boost::bind( &ServiceController::runIoService, this ) );
         }
+
         m_eState = SS_RUNNING;
+        if (m_onStart)
+          m_onStart();
+
         worker_threads.join_all();
       }
       else
       {
+#if 0
         m_eState = SS_RUNNING;
         runIoService();
+#endif
+        boost::thread_group worker_threads;
+        worker_threads.create_thread( boost::bind( &ServiceController::runIoService, this ) );
+        m_eState = SS_RUNNING;
+
+        if (m_onStart)
+          m_onStart();
+
+        worker_threads.join_all();
       }
 
       m_rIo_service.reset();
@@ -201,5 +220,6 @@ class ServiceController : public boost::noncopyable
     unsigned m_uiTimerTimeoutMs;
     boost::asio::deadline_timer m_timer;
 
+    OnStart_t m_onStart;
 };
 

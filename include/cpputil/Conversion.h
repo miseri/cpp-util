@@ -80,12 +80,12 @@ std::string toString(T t)
 }
 
 template <class T>
-std::string toString(const std::vector<T>& vecT)
+std::string toString(const std::vector<T>& vecT, char delim = ' ')
 {
   std::ostringstream ostr;
-  std::for_each(vecT.begin(), vecT.end(), [&ostr](const T t)
+  std::for_each(vecT.begin(), vecT.end(), [&ostr,delim](const T t)
   {
-    ostr << t << " ";
+    ostr << t << delim;
   });
   return ostr.str();
 }

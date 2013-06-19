@@ -209,7 +209,7 @@ private:
   void main()
   {
     try
-    {      
+    {
       VLOG(10) << "Service thread started: " << m_sServiceName;
 
       boost::mutex::scoped_lock lock(m_threadMutex);

@@ -15,7 +15,8 @@ public:
 
   /// Default Constructor: Service manager uses io_service of ServiceController
   ServiceManager()
-    :m_uiLastErrorServiceId(NO_ERROR_ID)
+    :m_uiServiceId(0),
+      m_uiLastErrorServiceId(NO_ERROR_ID)
   {
     VLOG(10) << "Constructor: using own IO service";
   }
@@ -23,6 +24,7 @@ public:
   /// Default Constructor: Service manager uses provide io_service
   ServiceManager(boost::asio::io_service& ioService)
     :ServiceController(ioService),
+      m_uiServiceId(0),
       m_uiLastErrorServiceId(NO_ERROR_ID)
   {
     VLOG(10) << "Constructor: using provided IO service";

@@ -33,7 +33,7 @@ public:
     uint32_t uiBitsRemaining = uiBits;
     while (uiBitsRemaining > 0)
     {
-      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBits);
+      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBitsRemaining);
       // preserve old value
       uiValue <<= uiBitsToReadInCurrentByte;
       // bits to shift by
@@ -66,7 +66,7 @@ public:
     uint32_t uiBitsRemaining = uiBits;
     while (uiBitsRemaining > 0)
     {
-      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBits);
+      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBitsRemaining);
       // preserve old value
       uiValue <<= uiBitsToReadInCurrentByte;
       // bits to shift by
@@ -99,7 +99,7 @@ public:
     uint32_t uiBitsRemaining = uiBits;
     while (uiBitsRemaining > 0)
     {
-      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBits);
+      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBitsRemaining);
       // preserve old value
       uiValue <<= uiBitsToReadInCurrentByte;
       // bits to shift by
@@ -148,7 +148,7 @@ public:
     uint32_t uiBitsRemaining = uiBits;
     while (uiBitsRemaining)
     {
-      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBits);
+      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBitsRemaining);
       // preserve old value
       m_uiBitsInCurrentByte -= uiBitsToReadInCurrentByte;
       if (m_uiBitsInCurrentByte == 0)

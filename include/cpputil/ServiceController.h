@@ -1,12 +1,11 @@
 #pragma once
-
 #include <memory>
-
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/system/error_code.hpp>
@@ -26,6 +25,9 @@
 class ServiceController : public boost::noncopyable
 {
   public:
+
+  typedef boost::function<void ()> OnStart_t;
+
     virtual ~ServiceController(){}
 
     boost::asio::io_service& getIoService()
@@ -37,6 +39,9 @@ class ServiceController : public boost::noncopyable
     bool isReady() const { return m_eState == SS_READY; }
     bool isStopping() const { return m_eState == SS_STOPPING; }
 
+    /// Completion handler
+    void setOnStartHandler(OnStart_t onStart) { m_onStart = onStart; }
+
     boost::system::error_code start()
     {
       // give subclass a chance to take action
@@ -47,14 +52,14 @@ class ServiceController : public boost::noncopyable
       m_timer.async_wait(boost::bind(&ServiceController::onTimer, this, boost::asio::placeholders::error ));
 
       unsigned uiCores = boost::thread::hardware_concurrency();
-      LOG(INFO) << "Got " << uiCores << " cores";
+      VLOG(10) << "Got " << uiCores << " cores";
 
       uiCores = (uiCores > 0) ? uiCores : 1;
 
 #ifdef SINGLE_CORE
       uiCores = 1;
 #endif
-      VLOG(1) << "Using " << uiCores << " cores";
+      VLOG(10) << "Using " << uiCores << " cores";
 
       // create threads for io service
       if (uiCores > 1)
@@ -64,13 +69,27 @@ class ServiceController : public boost::noncopyable
         {
           worker_threads.create_thread( boost::bind( &ServiceController::runIoService, this ) );
         }
+
         m_eState = SS_RUNNING;
+        if (m_onStart)
+          m_onStart();
+
         worker_threads.join_all();
       }
       else
       {
+#if 0
         m_eState = SS_RUNNING;
         runIoService();
+#endif
+        boost::thread_group worker_threads;
+        worker_threads.create_thread( boost::bind( &ServiceController::runIoService, this ) );
+        m_eState = SS_RUNNING;
+
+        if (m_onStart)
+          m_onStart();
+
+        worker_threads.join_all();
       }
 
       m_rIo_service.reset();
@@ -156,7 +175,7 @@ class ServiceController : public boost::noncopyable
         }
         else
         {
-          VLOG(1) << "Shutting down";
+          VLOG(10) << "Shutting down";
         }
       }
     }
@@ -165,9 +184,9 @@ class ServiceController : public boost::noncopyable
     {
       try
       {
-        VLOG(1) << "[" << boost::this_thread::get_id() << "] Running io service thread";
+        VLOG(10) << "[" << boost::this_thread::get_id() << "] Running io service thread";
         m_rIo_service.run();
-        VLOG(1) << "[" << boost::this_thread::get_id() << "] End of io service thread";
+        VLOG(10) << "[" << boost::this_thread::get_id() << "] End of io service thread";
         return;
       }
       catch(boost::exception &e)
@@ -201,5 +220,6 @@ class ServiceController : public boost::noncopyable
     unsigned m_uiTimerTimeoutMs;
     boost::asio::deadline_timer m_timer;
 
+    OnStart_t m_onStart;
 };
 

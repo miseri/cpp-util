@@ -69,12 +69,17 @@ static void startEventLoop(ctrl_function_t start_function, ctrl_function_t stop_
   sigaddset(&waitMask, SIGTERM);
   pthread_sigmask(SIG_BLOCK, &waitMask, 0);
   int sig = 0;
+
+  VLOG(10) << "Waiting for signal";
   sigwait(&waitMask, &sig);
 
+  VLOG(10) << "Signal received: calling stop function";
   stop_function();
 
+  VLOG(10) << "Joining thread";
   // wait for thread to finish
   t.join();
+  VLOG(10) << "Join complete";
 #endif
 }
 

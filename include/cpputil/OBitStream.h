@@ -307,11 +307,14 @@ public:
 private:
   void increaseBufferSize(uint32_t uiNewSize)
   {
-      Buffer buffer = Buffer(new uint8_t[uiNewSize], uiNewSize);
-      memset(&buffer[0], 0, uiNewSize);
-      memcpy(&buffer[0], &m_buffer[0], m_uiBufferSize );
-      m_buffer = buffer;
-      m_uiBufferSize = uiNewSize;
+    // respect old pre buffer
+    uint32_t uiOldPreBuffer = m_buffer.getPrebufferSize();
+    uint32_t uiOldPostBuffer = m_buffer.getPostbufferSize();
+    Buffer buffer = Buffer(new uint8_t[uiNewSize], uiNewSize, uiOldPreBuffer, uiOldPostBuffer);
+    memset(&buffer[0], 0, uiNewSize);
+    memcpy(&buffer[0], &m_buffer[0], m_uiBufferSize );
+    m_buffer = buffer;
+    m_uiBufferSize = uiNewSize;
   }
   void doWrite(uint32_t uiValue, uint32_t uiBits)
   {

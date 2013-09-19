@@ -42,12 +42,12 @@ public:
     {
       m_mServices[m_uiServiceId] = std::make_pair(onStart, onStop);
       uiServiceId = m_uiServiceId++;
-      LOG(WARNING) << "Service registered: " << uiServiceId;
+      VLOG(10) << "Service registered: " << uiServiceId;
       return true;
     }
     else
     {
-      VLOG(10) << "Failed to register service";
+      LOG(WARNING) << "Failed to register service";
       return false;
     }
   }

@@ -88,7 +88,7 @@ public:
 
   bool prependData(uint8_t* pData, size_t size)
   {
-    if (size < m_uiPrebuffer) return false;
+    if (size > m_uiPrebuffer) return false;
     memcpy(m_buffer.get() + m_uiPrebuffer - size, pData, size);
     m_uiPrebuffer -= size;
     return true;
@@ -101,7 +101,7 @@ public:
    */
   bool consumePostBuffer(size_t size)
   {
-    if (size < m_uiPostbuffer) return false;
+    if (size > m_uiPostbuffer) return false;
     m_uiPostbuffer -= size;
     return true;
   }

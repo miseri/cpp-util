@@ -142,10 +142,7 @@ protected:
       }
     }
 
-    if (m_lastError)
-    {
-      return m_lastError;
-    }
+    return m_lastError;
   }
 
 private:

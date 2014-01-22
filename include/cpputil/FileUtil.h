@@ -164,7 +164,7 @@ public:
   #else
 	  // Linux
 	  struct statvfs fiData;
-	  struct statvfs *fpData;
+    // struct statvfs *fpData;
 
 	  if((statvfs(sRootDirectory.c_str(), &fiData)) < 0 ) 
 	  {

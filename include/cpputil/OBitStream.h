@@ -48,6 +48,7 @@ public:
   {
     m_uiBitsLeft = 8;
     m_uiCurrentBytePos = 0;
+    memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
   }
 
   void write8Bits(uint8_t uiValue)

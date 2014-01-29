@@ -19,7 +19,7 @@ public:
     :m_uiServiceId(0),
       m_uiLastErrorServiceId(NO_ERROR_ID)
   {
-    VLOG(10) << "Constructor: using own IO service";
+    VLOG(15) << "Constructor: using own IO service";
   }
 
   /// Default Constructor: Service manager uses provide io_service
@@ -28,7 +28,7 @@ public:
       m_uiServiceId(0),
       m_uiLastErrorServiceId(NO_ERROR_ID)
   {
-    VLOG(10) << "Constructor: using provided IO service";
+    VLOG(15) << "Constructor: using provided IO service";
   }
 
   /// return service id of last error
@@ -43,7 +43,7 @@ public:
     {
       m_mServices[m_uiServiceId] = std::make_tuple(onStart, onStop, bAutoStart);
       uiServiceId = m_uiServiceId++;
-      VLOG(10) << "Service registered: " << uiServiceId;
+      VLOG(15) << "Service registered: " << uiServiceId;
       return true;
     }
     else
@@ -64,7 +64,7 @@ public:
     }
     else
     {
-      VLOG(10) << "Service deregistered: " << uiServiceId;
+      VLOG(15) << "Service deregistered: " << uiServiceId;
       m_mServices.erase(it);
       return true;
     }

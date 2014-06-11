@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cassert>
 #include <cstring>
 #include <vector>
@@ -10,33 +9,22 @@
 
 #define DEFAULT_BUFFER_SIZE 1024
 
-/// DEBUG_OBITSTREAM for outputting debug info
-
 /**
- * Class to write to a bitstream
+ * @brief The BitWriter class duplicates code from the BitWriter for now.
+ * This code does not need a Buffer and can write to the passed in pointer!
+ * It does not take ownership of the data pointed to.
  */
-class OBitStream
+class BitWriter
 {
 public:
 
-  OBitStream(const uint32_t uiSize = DEFAULT_BUFFER_SIZE, bool bConservative = true)
-    :m_uiBufferSize(uiSize),
-    m_buffer(new uint8_t[uiSize], uiSize),
+  BitWriter(uint8_t* pDestination, uint32_t uiLength)
+    :m_uiBufferSize(uiLength),
+    m_pDestination(pDestination),
     m_uiBitsLeft(8),
-    m_uiCurrentBytePos(0),
-    m_bConservative(bConservative)
+    m_uiCurrentBytePos(0)
   {
-    memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
-  }
-
-  OBitStream(Buffer buffer, bool bConservative = true)
-    :m_uiBufferSize(buffer.getSize()),
-    m_buffer(buffer),
-    m_uiBitsLeft(8),
-    m_uiCurrentBytePos(0),
-    m_bConservative(bConservative)
-  {
-    memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
+    memset(m_pDestination, 0, m_uiBufferSize);
   }
 
   /**
@@ -48,35 +36,33 @@ public:
   {
     m_uiBitsLeft = 8;
     m_uiCurrentBytePos = 0;
-    memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
+    memset(m_pDestination, 0, m_uiBufferSize);
   }
 
-  void write8Bits(uint8_t uiValue)
+  bool write8Bits(uint8_t uiValue)
   {
     if (totalBitsLeft() < 8)
     {
-      increaseBufferSize(m_uiBufferSize << 1);
+      return false;
     }
     // check if we're writing on byte boundary
     if (m_uiBitsLeft == 8)
     {
-      m_buffer[m_uiCurrentBytePos++] = uiValue;
+      m_pDestination[m_uiCurrentBytePos++] = uiValue;
     }
     else
     {
       write(uiValue, 8);
     }
+    return true;
   }
 
-  void write(uint32_t uiValue, uint32_t uiBits)
+  bool write(uint32_t uiValue, uint32_t uiBits)
   {
     // check if enough memory has been allocated
     if ( totalBitsLeft() < uiBits )
     {
-      // reallocate more than enough memory:
-      uint32_t uiBytes = uiBits >> 3;
-      uint32_t uiNewSize = std::max(m_uiBufferSize << 1, (m_uiBufferSize + uiBytes) << 1 );
-      increaseBufferSize(uiNewSize);
+      return false;
     }
 
     // check if we can do a fast copy: on byte boundaries where uiBits is a multiple of 8
@@ -91,38 +77,38 @@ public:
         {
           case 32:
           {
-#ifdef DEBUG_OBITSTREAM
+#ifdef DEBUG_BitWriter
             DLOG(INFO) << 32;
 #endif
-            m_buffer[m_uiCurrentBytePos++] = ((uiValue >> 24) & 0xff); 
+            m_pDestination[m_uiCurrentBytePos++] = ((uiValue >> 24) & 0xff);
           }
           case 24:
           {
-#ifdef DEBUG_OBITSTREAM
+#ifdef DEBUG_BitWriter
             DLOG(INFO) << 24;
 #endif
-            m_buffer[m_uiCurrentBytePos++] = ((uiValue >> 16) & 0xff);
+            m_pDestination[m_uiCurrentBytePos++] = ((uiValue >> 16) & 0xff);
           }
           case 16:
           {
-#ifdef DEBUG_OBITSTREAM
+#ifdef DEBUG_BitWriter
             DLOG(INFO) << 16;
 #endif
-            m_buffer[m_uiCurrentBytePos++] = ((uiValue >> 8) & 0xff);
+            m_pDestination[m_uiCurrentBytePos++] = ((uiValue >> 8) & 0xff);
           }
           case 8:
           {
-#ifdef DEBUG_OBITSTREAM
+#ifdef DEBUG_BitWriter
             DLOG(INFO) << 8;
 #endif
-            m_buffer[m_uiCurrentBytePos++] = uiValue;
+            m_pDestination[m_uiCurrentBytePos++] = uiValue;
             break;
           }
         }
       }
       else
       {
-        //memcpy(&m_buffers[m_uiCurrentBufferPos][m_uiCurrentBytePos],  );
+        //memcpy(&m_pDestinations[m_uiCurrentBufferPos][m_uiCurrentBytePos],  );
         assert(false);
       }
     }
@@ -137,7 +123,7 @@ public:
         // write max of m_uiBitsLeft bits
         uint8_t uiBitsToWrite = std::min(uiBitsLeftToWrite, m_uiBitsLeft);
         // calculate mask for bits
-        uint8_t uiMask = (2 << (uiBitsToWrite - 1)) -1; 
+        uint8_t uiMask = (2 << (uiBitsToWrite - 1)) -1;
         // calculate bits to written in next write if current byte has insufficient space
         uint8_t uiOverflowBits = (uiBitsLeftToWrite > m_uiBitsLeft)? uiBitsLeftToWrite - m_uiBitsLeft : 0;
         // align value to the right
@@ -145,8 +131,8 @@ public:
         // now shift value to correct position within target byte
         uiOffsetByteValue = uiOffsetByteValue << (m_uiBitsLeft - uiBitsToWrite);
         // combine value in buffer with new written bits
-        m_buffer[m_uiCurrentBytePos] = m_buffer[m_uiCurrentBytePos] | uiOffsetByteValue;
-        
+        m_pDestination[m_uiCurrentBytePos] = m_pDestination[m_uiCurrentBytePos] | uiOffsetByteValue;
+
         uiBitsLeftToWrite -= uiBitsToWrite;
         m_uiBitsLeft -= uiBitsToWrite;
         if (m_uiBitsLeft == 0)
@@ -154,46 +140,11 @@ public:
           m_uiBitsLeft = 8;
           ++m_uiCurrentBytePos;
         }
-        // subtract written bits from value 
+        // subtract written bits from value
         uiValueCopy = uiValueCopy - (uiOffsetByteValue << uiOverflowBits);
       }
-
-#if 0
-      //
-      //
-      uint8_t uiBitsToUse = std::min(uiBits, m_uiBitsLeft);
-      uint8_t uiMask = (2 << (uiBits - 1)); 
-      uint8_t uiMaskedValue = uiValue & uiMask;
-      LOG_INFO(rLogger, LOG_FUNCTION, "Mask: %1% Masked Val: %2%", (int)uiMask, (int)uiMaskedValue);
-      // current value at posi
-      // check if we have enough bits for all value
-      if (uiBits <= m_uiBitsLeft)
-      {
-        LOG_INFO(rLogger, LOG_FUNCTION, "Before: %1% After shift: %2%", (int)m_buffer[m_uiCurrentBytePos] , (int)(m_buffer[m_uiCurrentBytePos] << uiBits) );
-     
-        m_buffer[m_uiCurrentBytePos] = (m_buffer[m_uiCurrentBytePos] << uiBits) | uiMaskedValue;
-        m_uiBitsLeft -= uiBits;
-        LOG_INFO(rLogger, LOG_FUNCTION, "New: %1% Bits left: %2%", (int)m_buffer[m_uiCurrentBytePos] , m_uiBitsLeft);
-        if (m_uiBitsLeft == 0)
-        {
-          m_uiBitsLeft = 8;
-          ++m_uiCurrentBytePos;
-        }
-      }
-      else
-      {
-        uint32_t uiRemainderBits = uiBits - m_uiBitsLeft;
-        // fill up current byte
-        m_buffer[m_uiCurrentBytePos]  = (m_buffer[m_uiCurrentBytePos]  << m_uiBitsLeft) | (uiMaskedValue >> uiRemainderBits);
-        m_uiBitsLeft = 8;
-        ++m_uiCurrentBytePos;
-        // write remainder
-        uiMask = (2 << uiRemainderBits) - 1;
-        m_buffer[m_uiCurrentBytePos]  = uiMaskedValue & uiMask; // the new mask will get rid of the other bits
-        m_uiBitsLeft = 8 - uiRemainderBits;
-      }
-#endif
     }
+    return true;
   }
 
   // this method can only be called on byte boundaries
@@ -201,9 +152,9 @@ public:
   {
     if ((m_uiBitsLeft != 8) || // check byte boundary
         ((m_uiBufferSize - m_uiCurrentBytePos) < uiBytes) // check buffer size
-       ) 
+       )
          return false;
-    memcpy(&m_buffer[m_uiCurrentBytePos], rSrc, uiBytes);
+    memcpy(&m_pDestination[m_uiCurrentBytePos], rSrc, uiBytes);
     m_uiCurrentBytePos += uiBytes;
     return true;
   }
@@ -215,7 +166,7 @@ public:
   {
       if (m_uiBitsLeft != 8) return false;
       // get remaining bytes
-      if (in.m_uiBitsRemaining % 8 != 0) return false;
+      if (in.getBitsRemaining() % 8 != 0) return false;
 
       // this code only works if all the pointers are byte aligned!!!
       if (m_uiCurrentBytePos >= m_uiBufferSize)
@@ -228,13 +179,10 @@ public:
       uint32_t uiBytesToCopy = in.getBytesRemaining();
       if (uiBytesToCopy > uiBytesLeft)
       {
-        // conservative for now:
-        uint32_t uiNewSize = m_bConservative ? m_uiCurrentBytePos + uiBytesToCopy : m_uiBufferSize * 2;
-        increaseBufferSize(uiNewSize);
+        return false;
       }
-      // increase buffer size if necessary
-      uint8_t* pDestination = const_cast<uint8_t*>(m_buffer.data()) + m_uiCurrentBytePos;
-      // bool bRes = in.readBytes(&m_buffer[m_uiCurrentBytePos], uiBytesToCopy);
+
+      uint8_t* pDestination = m_pDestination + m_uiCurrentBytePos;
       bool bRes = in.readBytes(pDestination, uiBytesToCopy);
       assert (bRes);
       m_uiCurrentBytePos += uiBytesToCopy;
@@ -250,7 +198,7 @@ public:
 #endif
       if (m_uiBitsLeft != 8) return false;
       // get remaining bytes
-      if (in.m_uiBitsRemaining % 8 != 0) return false;
+      if (in.getBitsRemaining() % 8 != 0) return false;
       if (in.getBytesRemaining() < uiBytesToCopy) return false;
 
       // this code only works if all the pointers are byte aligned!!!
@@ -263,20 +211,16 @@ public:
 
       if (uiBytesToCopy > uiBytesLeft)
       {
-        // conservative for now:
-        uint32_t uiNewSize = m_uiCurrentBytePos + uiBytesToCopy;
-        increaseBufferSize(uiNewSize);
+        return false;
       }
-      // increase buffer size if necessary
-      uint8_t* pDestination = const_cast<uint8_t*>(m_buffer.data()) + m_uiCurrentBytePos;
-      // bool bRes = in.readBytes(&m_buffer[m_uiCurrentBytePos], uiBytesToCopy);
+      uint8_t* pDestination = m_pDestination+ m_uiCurrentBytePos;
       bool bRes = in.readBytes(pDestination, uiBytesToCopy);
       assert (bRes);
       m_uiCurrentBytePos += uiBytesToCopy;
       return bRes;
   }
 
-  uint32_t bytesUsed() const 
+  uint32_t bytesUsed() const
   {
     return m_uiCurrentBytePos + (m_uiBitsLeft == 8 ? 0 : 1);
   }
@@ -291,11 +235,11 @@ public:
     // copy all bits to a buffer
     Buffer buffer;
     // first calculate size of buffer required
-    uint32_t uiSize = bytesUsed(); 
+    uint32_t uiSize = bytesUsed();
     if (uiSize)
     {
       buffer.setData(new uint8_t[uiSize], uiSize);
-      memcpy(&buffer[0], &m_buffer[0], uiSize); 
+      memcpy(&buffer[0], &m_pDestination[0], uiSize);
     }
     return buffer;
   }
@@ -306,17 +250,6 @@ public:
   }
 
 private:
-  void increaseBufferSize(uint32_t uiNewSize)
-  {
-    // respect old pre buffer
-    uint32_t uiOldPreBuffer = m_buffer.getPrebufferSize();
-    uint32_t uiOldPostBuffer = m_buffer.getPostbufferSize();
-    Buffer buffer = Buffer(new uint8_t[uiNewSize], uiNewSize, uiOldPreBuffer, uiOldPostBuffer);
-    memset(&buffer[0], 0, uiNewSize);
-    memcpy(&buffer[0], &m_buffer[0], m_uiBufferSize );
-    m_buffer = buffer;
-    m_uiBufferSize = uiNewSize;
-  }
   void doWrite(uint32_t uiValue, uint32_t uiBits)
   {
     // calculate mask: (2^bits - 1) is a mask for uiBits number of bits
@@ -330,13 +263,13 @@ private:
     if (uiBits <= m_uiBitsLeft)
     {
 #if 0
-      LOG_INFO(rLogger, LOG_FUNCTION, "Before: %1% After shift: %2%", (int)m_buffer[m_uiCurrentBytePos] , (int)(m_buffer[m_uiCurrentBytePos] << uiBits) );
+      LOG_INFO(rLogger, LOG_FUNCTION, "Before: %1% After shift: %2%", (int)m_pDestination[m_uiCurrentBytePos] , (int)(m_pDestination[m_uiCurrentBytePos] << uiBits) );
 #endif
 
-      m_buffer[m_uiCurrentBytePos] = (m_buffer[m_uiCurrentBytePos] << uiBits) | uiMaskedValue;
+      m_pDestination[m_uiCurrentBytePos] = (m_pDestination[m_uiCurrentBytePos] << uiBits) | uiMaskedValue;
       m_uiBitsLeft -= uiBits;
 #if 0
-      LOG_INFO(rLogger, LOG_FUNCTION, "New: %1% Bits left: %2%", (int)m_buffer[m_uiCurrentBytePos] , m_uiBitsLeft);
+      LOG_INFO(rLogger, LOG_FUNCTION, "New: %1% Bits left: %2%", (int)m_pDestination[m_uiCurrentBytePos] , m_uiBitsLeft);
 #endif
       if (m_uiBitsLeft == 0)
       {
@@ -348,25 +281,22 @@ private:
     {
       uint32_t uiRemainderBits = uiBits - m_uiBitsLeft;
       // fill up current byte
-      m_buffer[m_uiCurrentBytePos]  = (m_buffer[m_uiCurrentBytePos]  << m_uiBitsLeft) & (uiMaskedValue >> uiRemainderBits);
+      m_pDestination[m_uiCurrentBytePos]  = (m_pDestination[m_uiCurrentBytePos]  << m_uiBitsLeft) & (uiMaskedValue >> uiRemainderBits);
       m_uiBitsLeft = 8;
       ++m_uiCurrentBytePos;
       // write remainder
       uiMask = (2 << uiRemainderBits) - 1;
-      m_buffer[m_uiCurrentBytePos]  = uiMaskedValue & uiMask; // the new mask will get rid of the other bits
+      m_pDestination[m_uiCurrentBytePos]  = uiMaskedValue & uiMask; // the new mask will get rid of the other bits
       m_uiBitsLeft = 8 - uiRemainderBits;
     }
   }
 
   uint32_t m_uiBufferSize;
-  Buffer m_buffer;
-
+  uint8_t* m_pDestination;
   ///< Bits left in current byte
   uint32_t m_uiBitsLeft;
-
-  ///< Current position in the buffer  
+  ///< Current position in the buffer
   uint32_t m_uiCurrentBytePos;
-
-  bool m_bConservative;
 };
+
 

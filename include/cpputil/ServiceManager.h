@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <tuple>
 #include <unordered_map>
 #include <cpputil/ServiceController.h>
 
@@ -8,7 +9,7 @@ class ServiceManager : public ServiceController
 public:
   /// A service is defined as a start and stop function
   typedef boost::function<boost::system::error_code ()> ServiceCb_t;
-  typedef std::pair<ServiceCb_t, ServiceCb_t> Service_t;
+  typedef std::tuple<ServiceCb_t, ServiceCb_t, bool> Service_t;
 
   static const uint32_t NO_ERROR_ID = UINT_MAX;
 
@@ -18,7 +19,7 @@ public:
     :m_uiServiceId(0),
       m_uiLastErrorServiceId(NO_ERROR_ID)
   {
-    VLOG(10) << "Constructor: using own IO service";
+    VLOG(15) << "Constructor: using own IO service";
   }
 
   /// Default Constructor: Service manager uses provide io_service
@@ -27,7 +28,7 @@ public:
       m_uiServiceId(0),
       m_uiLastErrorServiceId(NO_ERROR_ID)
   {
-    VLOG(10) << "Constructor: using provided IO service";
+    VLOG(15) << "Constructor: using provided IO service";
   }
 
   /// return service id of last error
@@ -36,18 +37,18 @@ public:
   /// registers service IFF services are not running already.
   /// returns true if successful
   /// ID that can be used to deregister service
-  bool registerService(ServiceCb_t onStart, ServiceCb_t onStop, uint32_t& uiServiceId )
+  bool registerService(ServiceCb_t onStart, ServiceCb_t onStop, uint32_t& uiServiceId, bool bAutoStart = true )
   {
     if (isReady())
     {
-      m_mServices[m_uiServiceId] = std::make_pair(onStart, onStop);
+      m_mServices[m_uiServiceId] = std::make_tuple(onStart, onStop, bAutoStart);
       uiServiceId = m_uiServiceId++;
-      LOG(WARNING) << "Service registered: " << uiServiceId;
+      VLOG(15) << "Service registered: " << uiServiceId;
       return true;
     }
     else
     {
-      VLOG(10) << "Failed to register service";
+      LOG(WARNING) << "Failed to register service";
       return false;
     }
   }
@@ -63,7 +64,7 @@ public:
     }
     else
     {
-      VLOG(10) << "Service deregistered: " << uiServiceId;
+      VLOG(15) << "Service deregistered: " << uiServiceId;
       m_mServices.erase(it);
       return true;
     }
@@ -87,19 +88,22 @@ protected:
     std::vector<uint32_t> started;
     for (const std::pair<uint32_t, Service_t>& pair : m_mServices)
     {
-      ec = pair.second.first();
-      if (!ec)
+      if (std::get<2>(pair.second))
       {
-        // remember started ids so that we can stop them in case one fails
-        started.push_back(pair.first);
-      }
-      else
-      {
-        LOG(WARNING) << "Failed to start service: " << ec.message();
-        // failure
-        m_lastError = ec;
-        m_uiLastErrorServiceId = pair.first;
-        break;
+        ec = std::get<0>(pair.second)();
+        if (!ec)
+        {
+          // remember started ids so that we can stop them in case one fails
+          started.push_back(pair.first);
+        }
+        else
+        {
+          LOG(WARNING) << "Failed to start service: " << ec.message();
+          // failure
+          m_lastError = ec;
+          m_uiLastErrorServiceId = pair.first;
+          break;
+        }
       }
     }
 
@@ -109,7 +113,7 @@ protected:
       for (uint32_t uiId : started)
       {
         // don't overwrite the error that causes the stop...
-        boost::system::error_code ec = m_mServices[uiId].second();
+        boost::system::error_code ec = std::get<1>(m_mServices[uiId])();
         if (ec)
         {
           LOG(WARNING) << "Failed to stop service: " << ec.message();
@@ -133,7 +137,7 @@ protected:
     boost::system::error_code ec;
     for (const std::pair<uint32_t, Service_t>& pair : m_mServices)
     {
-      ec = pair.second.second();
+      ec = std::get<1>(pair.second)();
       if (ec)
       {
         LOG(WARNING) << "Failed to stop service: " << ec.message();
@@ -142,10 +146,7 @@ protected:
       }
     }
 
-    if (m_lastError)
-    {
-      return m_lastError;
-    }
+    return m_lastError;
   }
 
 private:

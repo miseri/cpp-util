@@ -1,7 +1,8 @@
 #pragma once
 
-#include <sstream>
 #include <cstdint>
+#include <sstream>
+#include <vector>
 
 #include <boost/algorithm/string.hpp>
 

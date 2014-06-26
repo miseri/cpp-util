@@ -83,12 +83,24 @@ std::string toString(T t)
 template <class T>
 std::string toString(const std::vector<T>& vecT, char delim = ' ')
 {
+#if 0
   std::ostringstream ostr;
   std::for_each(vecT.begin(), vecT.end(), [&ostr,delim](const T t)
   {
     ostr << t << delim;
   });
   return ostr.str();
+#else
+  std::ostringstream ostr;
+  if (vecT.empty()) return "";
+  ostr << vecT[0];
+  for (size_t i = 1; i < vecT.size(); ++i)
+  {
+    ostr << delim << vecT[i];
+  }
+  return ostr.str();
+
+#endif
 }
 
 // Converts "1", "true", "TRUE" to true and "0", "FALSE" and "false" to false

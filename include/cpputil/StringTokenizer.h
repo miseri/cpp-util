@@ -13,9 +13,11 @@ public:
 
   static std::vector<std::string> tokenize(const std::string& sText, const std::string& sTokens = " ", bool trim = false, bool bDropEmptyTokens = false)
   {
+    std::vector<std::string> vTokens;
     std::string sTrimmed = sText;
     boost::algorithm::trim(sTrimmed);
-    std::vector<std::string> vTokens;
+    if (sTrimmed.empty()) return vTokens;
+
     size_t last_pos = 0;
     for (size_t pos = 0; pos < sTrimmed.length(); ++pos)
     {

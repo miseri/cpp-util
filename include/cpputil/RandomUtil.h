@@ -1,5 +1,5 @@
 #pragma once
-
+#include <ctime>
 #include <boost/cstdint.hpp>  
 #include <boost/noncopyable.hpp>
 #include <boost/random.hpp>

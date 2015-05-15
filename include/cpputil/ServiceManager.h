@@ -17,7 +17,9 @@ public:
   /// Default Constructor: Service manager uses io_service of ServiceController
   ServiceManager()
     :m_uiServiceId(0),
-      m_uiLastErrorServiceId(NO_ERROR_ID)
+      m_uiLastErrorServiceId(NO_ERROR_ID),
+      m_uiDurationMs(0),
+      m_endTimer(m_rIo_service)
   {
     VLOG(15) << "Constructor: using own IO service";
   }
@@ -26,10 +28,18 @@ public:
   ServiceManager(boost::asio::io_service& ioService)
     :ServiceController(ioService),
       m_uiServiceId(0),
-      m_uiLastErrorServiceId(NO_ERROR_ID)
+      m_uiLastErrorServiceId(NO_ERROR_ID),
+      m_uiDurationMs(0),
+      m_endTimer(m_rIo_service)
   {
     VLOG(15) << "Constructor: using provided IO service";
   }
+
+  /**
+   * @brief setDurationMs sets the duration the service will run after start() is called
+   * @param uiDuration The duration in milliseconds
+   */
+  void setDurationMs(uint32_t uiDurationMs) { m_uiDurationMs = uiDurationMs; }
 
   /// return service id of last error
   uint32_t getLastErrorServiceId() const { return m_uiLastErrorServiceId;}
@@ -121,6 +131,12 @@ protected:
       }
     }
 
+    if (m_uiDurationMs != 0)
+    {
+      m_endTimer.expires_from_now(boost::posix_time::milliseconds(m_uiDurationMs));
+      m_endTimer.async_wait(boost::bind(&ServiceManager::onEndTimer, this, boost::asio::placeholders::error ));
+    }
+
     return m_lastError;
   }
 
@@ -131,6 +147,9 @@ protected:
    */
   virtual boost::system::error_code doStop()
   {
+    // cancel timer in case it was called
+    m_endTimer.cancel();
+    
     m_lastError = boost::system::error_code();
     m_uiLastErrorServiceId = NO_ERROR_ID;
 
@@ -150,11 +169,29 @@ protected:
   }
 
 private:
-  //
+
+  void onEndTimer( const boost::system::error_code& ec )
+  {
+    if (!ec)
+    {
+      VLOG(15) << "Duration expired: " << m_uiDurationMs << " ms";
+      stop();
+    }
+    else
+    {
+      // cancelled?
+      VLOG(15) << "End timer cancelled.";
+    }
+  }
+private:
+
   uint32_t m_uiServiceId;
   std::unordered_map<uint32_t, Service_t> m_mServices;
 
   // store information about the last error
   boost::system::error_code m_lastError;
   uint32_t m_uiLastErrorServiceId;
+
+  uint32_t m_uiDurationMs;
+  boost::asio::deadline_timer m_endTimer;
 };

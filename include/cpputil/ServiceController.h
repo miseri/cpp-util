@@ -13,7 +13,7 @@
 
 // -DSINGLE_CORE: can be used to simplify debugging and determining
 // whether multi-threading related bugs are occurring
-#define SINGLE_CORE
+// #define SINGLE_CORE
 
 /**
  * This class provides active object functionality
@@ -60,7 +60,7 @@ public:
 #ifdef SINGLE_CORE
     uiCores = 1;
 #else
-    if (uiCores > m_uiMaxThreads)
+    if (m_uiMaxThreads!= 0 && uiCores > m_uiMaxThreads)
     {
       uiCores = m_uiMaxThreads;
     }

@@ -11,7 +11,8 @@ class IBitStream
 
 public:
   IBitStream(Buffer buffer)
-    :m_buffer(buffer),
+    :m_pBuffer(nullptr),
+    m_buffer(buffer),
     m_uiBitsRemaining(buffer.getSize() << 3),
     m_uiBitsInCurrentByte(8),
     m_uiCurrentBytePos(0)
@@ -19,9 +20,51 @@ public:
 
   }
 
+  IBitStream(const std::string& sData)
+    :m_pBuffer(new uint8_t[sData.length()]),
+      m_buffer(m_pBuffer, sData.length()),
+      m_uiBitsRemaining(m_buffer.getSize() << 3),
+      m_uiBitsInCurrentByte(8),
+      m_uiCurrentBytePos(0)
+  {
+    memcpy((void*)m_pBuffer, (void*)sData.c_str(), sData.length());
+  }
+
   uint32_t getBitsRemaining() const { return m_uiBitsRemaining; }
   uint32_t getBytesRemaining() const { return (m_uiBitsRemaining >> 3); }
-  
+
+  bool read(uint64_t& uiValue, uint32_t uiBits)
+  {
+    if (uiBits > m_uiBitsRemaining)
+    {
+      return false;
+    }
+
+    uiValue = 0;
+    uint32_t uiBitsRemaining = uiBits;
+    while (uiBitsRemaining > 0)
+    {
+      uint32_t uiBitsToReadInCurrentByte = std::min(m_uiBitsInCurrentByte, uiBitsRemaining);
+      // preserve old value
+      uiValue <<= uiBitsToReadInCurrentByte;
+      // bits to shift by
+      uint32_t uiBitsToShiftBy = m_uiBitsInCurrentByte - uiBitsToReadInCurrentByte;
+      uint8_t uiMask = (2 << (uiBitsToReadInCurrentByte - 1)) - 1;
+      uiValue |= ((m_buffer[m_uiCurrentBytePos] >> uiBitsToShiftBy) & uiMask);
+
+      m_uiBitsInCurrentByte -= uiBitsToReadInCurrentByte;
+      if (m_uiBitsInCurrentByte == 0)
+      {
+        m_uiBitsInCurrentByte = 8;
+        ++m_uiCurrentBytePos;
+      }
+      uiBitsRemaining -= uiBitsToReadInCurrentByte;
+    }
+    // update total
+    m_uiBitsRemaining -= uiBits;
+    return true;
+  }
+
   bool read(uint32_t& uiValue, uint32_t uiBits)
   {
     if (uiBits > m_uiBitsRemaining)
@@ -182,6 +225,7 @@ public:
     return m_buffer[m_uiCurrentBytePos];
   }
 private:
+  uint8_t* m_pBuffer;
   Buffer m_buffer;
   uint32_t m_uiBitsRemaining;
   uint32_t m_uiBitsInCurrentByte;

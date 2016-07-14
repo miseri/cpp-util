@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cassert>
 #include <cstring>
 #include <vector>
@@ -9,27 +8,37 @@
 #include "IBitStream.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
+#define PRE_BUFFER_SIZE 0
 
 /// DEBUG_OBITSTREAM for outputting debug info
 
 /**
- * Class to write to a bitstream
+ * @brief Class to write to a bitstream
  */
 class OBitStream
 {
 public:
-
-  OBitStream(const uint32_t uiSize = DEFAULT_BUFFER_SIZE, bool bConservative = true)
+  /**
+   * @brief OBitStream
+   * @param uiSize
+   * @param bConservative
+   * @param uiPreBufferSize
+   */
+  explicit OBitStream(const uint32_t uiSize = DEFAULT_BUFFER_SIZE, const uint32_t uiPreBufferSize = PRE_BUFFER_SIZE, bool bConservative = true)
     :m_uiBufferSize(uiSize),
-    m_buffer(new uint8_t[uiSize], uiSize),
+    m_buffer(new uint8_t[uiSize], uiSize, uiPreBufferSize, 0), // allocating 4 bytes of prebuffer
     m_uiBitsLeft(8),
     m_uiCurrentBytePos(0),
     m_bConservative(bConservative)
   {
     memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
   }
-
-  OBitStream(Buffer buffer, bool bConservative = true)
+  /**
+   * @brief OBitStream
+   * @param buffer
+   * @param bConservative
+   */
+  explicit OBitStream(Buffer buffer, bool bConservative = true)
     :m_uiBufferSize(buffer.getSize()),
     m_buffer(buffer),
     m_uiBitsLeft(8),
@@ -38,19 +47,21 @@ public:
   {
     memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
   }
-
   /**
-    * This method resets the write pointers inside the class
-    * The allocated memory is not touched or modified.
-    * This is useful to avoid memory allocation.
-    */
+   * @brief reset resets the write pointers inside the class
+   * The allocated memory is not touched or modified.
+   * This is useful to avoid memory allocation.
+   */
   void reset()
   {
     m_uiBitsLeft = 8;
     m_uiCurrentBytePos = 0;
     memset(m_buffer.getBuffer().get(), 0, m_uiBufferSize);
   }
-
+  /**
+   * @brief write8Bits
+   * @param uiValue
+   */
   void write8Bits(uint8_t uiValue)
   {
     if (totalBitsLeft() < 8)
@@ -67,7 +78,11 @@ public:
       write(uiValue, 8);
     }
   }
-
+  /**
+   * @brief write
+   * @param uiValue
+   * @param uiBits
+   */
   void write(uint32_t uiValue, uint32_t uiBits)
   {
     // check if enough memory has been allocated
@@ -195,8 +210,13 @@ public:
 #endif
     }
   }
-
-  // this method can only be called on byte boundaries
+  /**
+   * @brief writeBytes
+   * @param rSrc
+   * @param uiBytes
+   * @return
+   * this method can only be called on byte boundaries
+   */
   bool writeBytes(const uint8_t*& rSrc, uint32_t uiBytes)
   {
     if ((m_uiBitsLeft != 8) || // check byte boundary
@@ -207,10 +227,13 @@ public:
     m_uiCurrentBytePos += uiBytes;
     return true;
   }
-
-
-  // this method writes all bytes remaining in the IBitStream to the output stream
-  // TODO: make this method handle non-byte boundary data
+  /**
+   * @brief write
+   * @param in
+   * @return
+   * this method writes all bytes remaining in the IBitStream to the output stream
+   * TODO: make this method handle non-byte boundary data
+   */
   bool write(IBitStream& in)
   {
       if (m_uiBitsLeft != 8) return false;
@@ -240,9 +263,14 @@ public:
       m_uiCurrentBytePos += uiBytesToCopy;
       return bRes;
   }
-
-  // this method writes all bytes remaining in the IBitStream to the output stream
-  // TODO: make this method handle non-byte boundary data
+  /**
+   * @brief write
+   * @param in
+   * @param uiBytesToCopy
+   * @return
+   * this method writes all bytes remaining in the IBitStream to the output stream
+   * TODO: make this method handle non-byte boundary data
+   */
   bool write(IBitStream& in, uint32_t uiBytesToCopy)
   {
 #if 0
@@ -275,17 +303,26 @@ public:
       m_uiCurrentBytePos += uiBytesToCopy;
       return bRes;
   }
-
+  /**
+   * @brief bytesUsed
+   * @return
+   */
   uint32_t bytesUsed() const 
   {
     return m_uiCurrentBytePos + (m_uiBitsLeft == 8 ? 0 : 1);
   }
-
+  /**
+   * @brief totalBitsLeft
+   * @return
+   */
   uint32_t totalBitsLeft() const
   {
     return  m_uiBitsLeft + 8 * (m_uiBufferSize - m_uiCurrentBytePos - 1);
   }
-
+  /**
+   * @brief str
+   * @return
+   */
   Buffer str() const
   {
     // copy all bits to a buffer
@@ -299,7 +336,10 @@ public:
     }
     return buffer;
   }
-
+  /**
+   * @brief data
+   * @return
+   */
   Buffer data() const
   {
     return str();

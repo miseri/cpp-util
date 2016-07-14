@@ -4,35 +4,32 @@
 #include <boost/shared_array.hpp>
 
 /**
- * Wrapper class around boost::shared array
+ * @brief Wrapper class around boost::shared array
  */
 class Buffer
 {
 public:
   typedef boost::shared_array< uint8_t > DataBuffer_t;
-
   /**
    * @brief Buffer Default constructor
    */
-  Buffer()
+  explicit Buffer()
     :m_buffer( DataBuffer_t() ),
     m_uiSize( 0 ),
     m_uiPrebuffer( 0 ),
     m_uiPostbuffer( 0 )
   {}
-
   /**
    * @brief Buffer Constructor that takes ownership of the passed in buffer
    * @param ptr The buffer that will be managed by this class
    * @param size The size of the buffer to be managed
    */
-  Buffer(uint8_t* ptr, size_t size)
+  explicit Buffer(uint8_t* ptr, size_t size)
     :m_buffer( DataBuffer_t(ptr) ),
     m_uiSize(size),
     m_uiPrebuffer(0),
     m_uiPostbuffer(0)
   {}
-
   /**
    * @brief Buffer Constructor that takes ownership of the passed in buffer.
    * The buffer contains prebuffer space to write data ahead of the data
@@ -42,7 +39,7 @@ public:
    * @param ptr The buffer that will be managed by this class
    * @param size The size of the buffer to be managed
    */
-  Buffer(uint8_t* ptr, size_t size, size_t prebuffer, size_t postbuffer)
+  explicit Buffer(uint8_t* ptr, size_t size, size_t prebuffer, size_t postbuffer)
     :m_buffer( DataBuffer_t(ptr) ),
     m_uiSize(size),
     m_uiPrebuffer(prebuffer),
